@@ -34,21 +34,22 @@ async function run() {
     const myExports = client.db("shopDB").collection("Exports");
     const usersdb = client.db("shopDB").collection("Users");
 
- // storing user data
-    app.post('/users', async (req, res) => {
+    // storing user data
+    app.post("/users", async (req, res) => {
       const newUser = req.body;
-      
-      const email = req.body.email
-      const query = { email: email }
+
+      const email = req.body.email;
+      const query = { email: email };
       const existingUser = await usersdb.findOne(query);
       if (existingUser) {
-        res.send({ message: "user already exits. do not need to insert again" })
+        res.send({
+          message: "user already exits. do not need to insert again",
+        });
+      } else {
+        const result = await usersdb.insertOne(newUser);
+        res.send(result);
       }
-      else { 
-      const result = await usersdb.insertOne(newUser) 
-      res.send(result)}
-
-    })
+    });
 
     // ✅ Insert one product for super admin
 
@@ -80,13 +81,17 @@ async function run() {
       res.send(products);
     });
 
-    // get product details
-    app.get('/products/:id', async (req, res) => { 
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) }
-      const result = await allproductsCollection.findOne(query)
-      res.send(result)
-    })
+app.get("/products/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const product = await allproductsCollection.findOne({ _id: new ObjectId(id) });
+    if (!product) return res.status(404).json({ error: "Product not found" });
+    res.json(product);
+  } catch (err) {
+    console.error("Error fetching product:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 
     //this delete for super admin
     app.delete("/products/:id", async (req, res) => {
@@ -110,13 +115,16 @@ async function run() {
     /// this will get all the imports in the my imports page
 
     app.get("/myimports", async (req, res) => {
-      const cursor = myImports.find().sort({ rating: -1 });
-      const imports = await cursor.toArray();
-      const query = {};
-      if (email) {
-        query.importer_email = email;
+      try {
+        const email = req.query.email;
+        const query = email ? { importer_email: email } : {};
+        const cursor = myImports.find(query).sort({ _id: -1 });
+        const imports = await cursor.toArray();
+        res.send(imports);
+      } catch (err) {
+        console.error("Error fetching imports:", err);
+        res.status(500).send({ error: "Failed to fetch imports" });
       }
-      res.send(imports);
     });
 
     // this will add products to my imports page/list / db
