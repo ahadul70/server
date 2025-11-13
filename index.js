@@ -197,14 +197,23 @@ app.get("/myexports", async (req, res) => {
 });
 
     // this will edit products uploaded my export
-    app.patch("/myexports/:id", async (req, res) => {
-      const id = req.params.id;
-      const updatedData = req.body;
-      const query = { _id: new ObjectId(id) };
-      const updateDoc = { $set: updatedData };
-      const result = await myExports.updateOne(query, updateDoc);
-      res.send(result);
-    });
+app.patch("/myexports/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const updatedData = req.body;
+    delete updatedData._id; // prevent overwrite
+
+    const query = { _id: new ObjectId(id) };
+    const updateDoc = { $set: updatedData };
+
+    const result = await myExports.updateOne(query, updateDoc);
+    res.send(result);
+  } catch (err) {
+    console.error("Update error:", err);
+    res.status(500).send({ message: "Server error", error: err.message });
+  }
+});
+
 
     // this will delete products upload my export
 
