@@ -259,7 +259,7 @@ app.post("/addexports", async (req, res) => {
 
 
     // ✅ Confirm connection
-    await client.db("admin").command({ ping: 1 });
+  //  await client.db("admin").command({ ping: 1 });
     console.log("✅ Connected to MongoDB successfully!");
   } catch (err) {
     console.error(err);
