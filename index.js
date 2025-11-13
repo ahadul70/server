@@ -151,15 +151,14 @@ async function run() {
   app.post("/myimports", async (req, res) => {
     try {
       const newImport = req.body;
-      const { productId, quantity } = newImport; // productId should come from allproductsCollection
-
+      const { productId, quantity } = newImport; 
       if (!productId || !quantity)
         return res.status(400).json({ error: "Missing productId or quantity" });
 
-      // insert the import
+     
       const importResult = await myImports.insertOne(newImport);
 
-      // decrease quantity in allproductsCollection
+     
       const updateResult = await allproductsCollection.updateOne(
         { _id: new ObjectId(productId) },
         { $inc: { quantity: -parseInt(quantity) } }
@@ -181,15 +180,22 @@ async function run() {
     });
 
     // this will get all the from my export
-    app.get("/myexports", async (req, res) => {
-      const cursor = myImports.find().sort({ rating: -1 });
-      const imports = await cursor.toArray();
-      const query = {};
-      if (email) {
-        query.exporter_email = email;
-      }
-      res.send(imports);
-    });
+app.get("/myexports", async (req, res) => {
+  try {
+    const email = req.query.email;
+    let query = {};
+
+    // if user email is provided, filter exports for that user
+    if (email) query.email = email;
+
+    const exportsData = await myExports.find(query).toArray();
+    res.send(exportsData);
+  } catch (err) {
+    console.error("Error fetching exports:", err);
+    res.status(500).json({ error: "Failed to fetch exports" });
+  }
+});
+
     // this will edit products uploaded my export
     app.patch("/myexports/:id", async (req, res) => {
       const id = req.params.id;
@@ -208,6 +214,40 @@ async function run() {
       const result = await myExports.deleteOne(query);
       res.send(result);
     });
+
+    // this will add products to my exports page/list / db
+app.post("/addexports", async (req, res) => {
+  try {
+    const newExport = req.body;
+
+    // basic validation
+    if (!newExport.name || !newExport.price || !newExport.quantity) {
+      return res
+        .status(400)
+        .json({ error: "Name, price, and quantity are required" });
+    }
+
+    const exportDoc = {
+      name: newExport.name,
+      image: newExport.image || "",
+      price: Number(newExport.price),
+      originCountry: newExport.originCountry || "",
+      rating: Number(newExport.rating) || 0,
+      quantity: Number(newExport.quantity),
+      createdAt: new Date(),
+    };
+
+    const result = await myExports.insertOne(exportDoc);
+    res
+      .status(201)
+      .json({ message: "Export product added successfully", data: result });
+  } catch (err) {
+    console.error("Error adding export product:", err);
+    res.status(500).json({ error: "Failed to add export product" });
+  }
+});
+
+
 
     // ✅ Confirm connection
     await client.db("admin").command({ ping: 1 });
