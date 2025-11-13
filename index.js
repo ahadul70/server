@@ -75,23 +75,27 @@ async function run() {
       const products = await cursor.toArray();
       res.send(products);
     });
+    //Get all popular products
     app.get("/popularproducts", async (req, res) => {
       const cursor = allproductsCollection.find().sort({ rating: -1 }).limit(6);
       const products = await cursor.toArray();
       res.send(products);
     });
-
-app.get("/products/:id", async (req, res) => {
-  try {
-    const { id } = req.params;
-    const product = await allproductsCollection.findOne({ _id: new ObjectId(id) });
-    if (!product) return res.status(404).json({ error: "Product not found" });
-    res.json(product);
-  } catch (err) {
-    console.error("Error fetching product:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-});
+    //Get all  products details by id
+    app.get("/products/:id", async (req, res) => {
+      try {
+        const { id } = req.params;
+        const product = await allproductsCollection.findOne({
+          _id: new ObjectId(id),
+        });
+        if (!product)
+          return res.status(404).json({ error: "Product not found" });
+        res.json(product);
+      } catch (err) {
+        console.error("Error fetching product:", err);
+        res.status(500).json({ error: "Server error" });
+      }
+    });
 
     //this delete for super admin
     app.delete("/products/:id", async (req, res) => {
@@ -127,21 +131,47 @@ app.get("/products/:id", async (req, res) => {
       }
     });
 
-    // this will add products to my imports page/list / db
-    app.post("/myimports", async (req, res) => {
+    // get details for one imported product
+    app.get("/myimports/:id", async (req, res) => {
       try {
-        const newProduct = req.body;
-        if (!newProduct || typeof newProduct !== "object") {
-          return res.status(400).json({ error: "Invalid product data" });
-        }
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await myImports.findOne(query);
 
-        const result = await myImports.insertOne(newProduct);
+        if (!result)
+          return res.status(404).json({ error: "Product not found" });
         res.send(result);
       } catch (err) {
-        console.error("Insert error:", err);
-        res.status(500).json({ error: "Failed to insert product" });
+        console.error(err);
+        res.status(500).json({ error: "Server error" });
       }
     });
+
+    // this will add products to my imports page/list / db
+  app.post("/myimports", async (req, res) => {
+    try {
+      const newImport = req.body;
+      const { productId, quantity } = newImport; // productId should come from allproductsCollection
+
+      if (!productId || !quantity)
+        return res.status(400).json({ error: "Missing productId or quantity" });
+
+      // insert the import
+      const importResult = await myImports.insertOne(newImport);
+
+      // decrease quantity in allproductsCollection
+      const updateResult = await allproductsCollection.updateOne(
+        { _id: new ObjectId(productId) },
+        { $inc: { quantity: -parseInt(quantity) } }
+      );
+
+      res.send({ importResult, updateResult });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Import failed" });
+    }
+  });
+
     //this will remove from my imports page
     app.delete("/myimports/:id", async (req, res) => {
       const id = req.params.id;
