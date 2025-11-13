@@ -148,28 +148,28 @@ async function run() {
     });
 
     // this will add products to my imports page/list / db
-  app.post("/myimports", async (req, res) => {
-    try {
-      const newImport = req.body;
-      const { productId, quantity } = newImport; 
-      if (!productId || !quantity)
-        return res.status(400).json({ error: "Missing productId or quantity" });
+    app.post("/myimports", async (req, res) => {
+      try {
+        const newImport = req.body;
+        const { productId, quantity } = newImport;
+        if (!productId || !quantity)
+          return res
+            .status(400)
+            .json({ error: "Missing productId or quantity" });
 
-     
-      const importResult = await myImports.insertOne(newImport);
+        const importResult = await myImports.insertOne(newImport);
 
-     
-      const updateResult = await allproductsCollection.updateOne(
-        { _id: new ObjectId(productId) },
-        { $inc: { quantity: -parseInt(quantity) } }
-      );
+        const updateResult = await allproductsCollection.updateOne(
+          { _id: new ObjectId(productId) },
+          { $inc: { quantity: -parseInt(quantity) } }
+        );
 
-      res.send({ importResult, updateResult });
-    } catch (err) {
-      console.error(err);
-      res.status(500).json({ error: "Import failed" });
-    }
-  });
+        res.send({ importResult, updateResult });
+      } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Import failed" });
+      }
+    });
 
     //this will remove from my imports page
     app.delete("/myimports/:id", async (req, res) => {
@@ -180,40 +180,39 @@ async function run() {
     });
 
     // this will get all the from my export
-app.get("/myexports", async (req, res) => {
-  try {
-    const email = req.query.email;
-    let query = {};
+    app.get("/myexports", async (req, res) => {
+      try {
+        const email = req.query.email;
+        let query = {};
 
-    // if user email is provided, filter exports for that user
-    if (email) query.email = email;
+        // if user email is provided, filter exports for that user
+        if (email) query.email = email;
 
-    const exportsData = await myExports.find(query).toArray();
-    res.send(exportsData);
-  } catch (err) {
-    console.error("Error fetching exports:", err);
-    res.status(500).json({ error: "Failed to fetch exports" });
-  }
-});
+        const exportsData = await myExports.find(query).toArray();
+        res.send(exportsData);
+      } catch (err) {
+        console.error("Error fetching exports:", err);
+        res.status(500).json({ error: "Failed to fetch exports" });
+      }
+    });
 
     // this will edit products uploaded my export
-app.patch("/myexports/:id", async (req, res) => {
-  try {
-    const id = req.params.id;
-    const updatedData = req.body;
-    delete updatedData._id; // prevent overwrite
+    app.patch("/myexports/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const updatedData = req.body;
+        delete updatedData._id; // prevent overwrite
 
-    const query = { _id: new ObjectId(id) };
-    const updateDoc = { $set: updatedData };
+        const query = { _id: new ObjectId(id) };
+        const updateDoc = { $set: updatedData };
 
-    const result = await myExports.updateOne(query, updateDoc);
-    res.send(result);
-  } catch (err) {
-    console.error("Update error:", err);
-    res.status(500).send({ message: "Server error", error: err.message });
-  }
-});
-
+        const result = await myExports.updateOne(query, updateDoc);
+        res.send(result);
+      } catch (err) {
+        console.error("Update error:", err);
+        res.status(500).send({ message: "Server error", error: err.message });
+      }
+    });
 
     // this will delete products upload my export
 
@@ -225,42 +224,40 @@ app.patch("/myexports/:id", async (req, res) => {
     });
 
     // this will add products to my exports page/list / db
-app.post("/addexports", async (req, res) => {
-  try {
-    const newExport = req.body;
+    app.post("/addexports", async (req, res) => {
+      try {
+        const newExport = req.body;
 
-    // basic validation
-    if (!newExport.name || !newExport.price || !newExport.quantity) {
-      return res
-        .status(400)
-        .json({ error: "Name, price, and quantity are required" });
-    }
+        // basic validation
+        if (!newExport.name || !newExport.price || !newExport.quantity) {
+          return res
+            .status(400)
+            .json({ error: "Name, price, and quantity are required" });
+        }
 
-    const exportDoc = {
-      name: newExport.name,
-      image: newExport.image || "",
-      price: Number(newExport.price),
-      originCountry: newExport.originCountry || "",
-      rating: Number(newExport.rating) || 0,
-      quantity: Number(newExport.quantity),
-      createdAt: new Date(),
-    };
+        const exportDoc = {
+          name: newExport.name,
+          image: newExport.image || "",
+          price: Number(newExport.price),
+          originCountry: newExport.originCountry || "",
+          rating: Number(newExport.rating) || 0,
+          quantity: Number(newExport.quantity),
+          createdAt: new Date(),
+        };
 
-    const result = await myExports.insertOne(exportDoc);
-    res
-      .status(201)
-      .json({ message: "Export product added successfully", data: result });
-  } catch (err) {
-    console.error("Error adding export product:", err);
-    res.status(500).json({ error: "Failed to add export product" });
-  }
-});
-
-
+        const result = await myExports.insertOne(exportDoc);
+        res
+          .status(201)
+          .json({ message: "Export product added successfully", data: result });
+      } catch (err) {
+        console.error("Error adding export product:", err);
+        res.status(500).json({ error: "Failed to add export product" });
+      }
+    });
 
     // ✅ Confirm connection
-  //  await client.db("admin").command({ ping: 1 });
-    console.log("✅ Connected to MongoDB successfully!");
+    //  await client.db("admin").command({ ping: 1 });
+    //console.log("✅ Connected to MongoDB successfully!");
   } catch (err) {
     console.error(err);
   }
@@ -269,5 +266,5 @@ app.post("/addexports", async (req, res) => {
 run().catch(console.dir);
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
+  //console.log(`🚀 Server is running on http://localhost:${PORT}`);
 });
